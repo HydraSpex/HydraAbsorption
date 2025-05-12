@@ -1472,6 +1472,7 @@ class MyWindow(QWidget):
         self.WLsSpectralMap = x_axis_values
         pixel_data = data[:, 1:]
         self.originalSM = pixel_data
+        self.TransposedData = np.transpose(pixel_data)
 
         # Dimensionen prüfen
         num_x_points = pixel_data.shape[0]  # Anzahl der Zeilen (entspricht X-Punkten)
@@ -1480,28 +1481,8 @@ class MyWindow(QWidget):
 
         x = int(round(math.sqrt(self.num_pixel_indices)))
         y = int(round(math.sqrt(self.num_pixel_indices)))
-        i = 0
-        yrun = 0
-        self.OGData =[]
-        while yrun < y:
-            OGDataLine = []
-            xrun = 0
-            while xrun < x:
-                j = 0
-                IntermediatData = []
-                while j < len(pixel_data):
-                    IntermediatData.append(pixel_data[j][i])
-                    j += 1
-                OGDataLine.append(IntermediatData)
-                xrun += 1
-            i += 1
-            yrun += 1
-            self.OGData.append(OGDataLine)
-
-        print("self.OGData: " + str(len(self.OGData)))
-        print("sself.OGData[0]: " + str(len(self.OGData[0])))
-        print("sself.OGData[0][0]: " + str(len(self.OGData[0][0])))
-
+        
+        
         # Integration durchführen
         self.integrated_matrix = np.sum(pixel_data, axis=0)
         print(f"'Integrierte' Matrix (kumulative Summe entlang Achse 0) erstellt mit Shape: {self.integrated_matrix.shape}")
@@ -1527,6 +1508,11 @@ class MyWindow(QWidget):
         print(f"Pixel-Daten erfolgreich als {self.pixel_matrix.shape} Matrix interpretiert.")
         self.pixel_matrix_savgol = self.savgol_matrix.reshape((int(round(math.sqrt(self.num_pixel_indices))), int(round(math.sqrt(self.num_pixel_indices)))))
         print(f"Pixel-Daten erfolgreich als {self.pixel_matrix_savgol.shape} Matrix interpretiert.")
+        self.originalSM_matrix = self.originalSM.reshape((int(round(math.sqrt(self.num_pixel_indices))), int(round(math.sqrt(self.num_pixel_indices))),1023))
+        print(f"Pixel-Daten erfolgreich als {self.originalSM_matrix.shape} Matrix interpretiert.")
+        self.Transposed_originalSM_matrix = self.TransposedData.reshape((int(round(math.sqrt(self.num_pixel_indices))), int(round(math.sqrt(self.num_pixel_indices))),1023))
+        print(f"Pixel-Daten erfolgreich als {self.originalSM_matrix.shape} Matrix interpretiert.")
+        self.integrated_originalSM_matrix = np.sum(self.originalSM_matrix, axis=2)
 
     def PlotSpectralMap(self, cmap = "viridis"):
         #Übergabe an GUI
@@ -1546,6 +1532,11 @@ class MyWindow(QWidget):
                                             shading='flat', # oder 'auto'/'gouraud'
                                             cmap='Greys',
                                             snap=True) # Wichtig für genaue Klicks an Kanten
+        #self.mesh_plot3 = self.ax3.pcolormesh(self.X3, self.Y3, self.pixel_matrix,
+        #                                    shading='flat', # oder 'auto'/'gouraud'
+        #                                    cmap='Greys',
+        #                                    snap=True) # Wichtig für genaue Klicks an Kanten
+        
 
         #self.figure.colorbar(self.mesh_plot, ax=self.ax, orientation='vertical')
         #self.figure.colorbar.set_fontcolor("white")
@@ -1622,6 +1613,35 @@ class MyWindow(QWidget):
         plt.title("3D-Surface of the integrated intensity with the max. wavelength as colormap")
         plt.show()
 
+        #3D-Surface Plot with extra dimension in Colorbar
+        #self.pixel_matrix_savgol_Normalized = np.interp(self.pixel_matrix_savgol, (self.pixel_matrix_savgol.min(), self.pixel_matrix_savgol.max()), (0, +1))
+        #self.pixel_matrix_Normalized = np.interp(self.pixel_matrix, (self.pixel_matrix.min(), self.pixel_matrix.max()), (0, +1))
+        self.pixel_matrix_Normalized = np.interp(self.pixel_matrix, (0, self.pixel_matrix.max()), (0, +1))
+        #self.pixel_matrix_savgol_Normalized = np.interp(self.pixel_matrix_savgol, (0, self.pixel_matrix_savgol.max()), (0, +1))
+        fig = plt.figure()
+
+        #plt.style.use('dark_background')
+        ax = fig.add_subplot(111)
+        ax.set_facecolor(((0/255),(0/255),(0/255)))
+        #mesh = ax.pcolormesh(x2,y2,self.pixel_matrix, cmap = cmap, alpha=self.pixel_matrix_savgol_Normalized ,vmin=InitMin, vmax=InitMax)
+        mesh = ax.pcolormesh(x2,y2,self.pixel_matrix_savgol, cmap = cmap, alpha=self.pixel_matrix_Normalized ,vmin=self.pixel_matrix_savgol.min(), vmax=self.pixel_matrix_savgol.max())
+
+        #Farbleiste1 hinzufügen
+        cbar1 = fig.colorbar(mesh, ax=ax)
+        cbar1.set_label('Wavelength [nm]', color='black')
+        Ticks = np.arange(self.pixel_matrix_savgol.min(),self.pixel_matrix_savgol.max(),1, dtype=int)
+        cbar1.set_ticklabels(Ticks,color='black')
+        cbar1.outline.set_color("black")
+        ax.xaxis.label.set_color('black')
+        ax.yaxis.label.set_color('black')
+        ax.tick_params(axis='x', colors='black')
+        ax.tick_params(axis='y', colors='black')
+
+        #Achsenbeschriftungen und Titel
+        ax.set_xlabel("X-Achse", color='black')
+        ax.set_ylabel("Y-Achse", color='black')
+        ax.set_title("Intensity weighted plot of the PL wavelength", color='black')
+        plt.show()
 
     def Spectra_from_SpectralMap(self):
         ordnerpfad_spectralMap = self.path_spectralmap
@@ -1648,10 +1668,6 @@ class MyWindow(QWidget):
         SavGol = self.groupboxSavGol.isChecked()
         PlotBoth = self.UseBoth_check.isChecked()
 
-        #print(SavGol)
-        #print(ShowMax)
-        #print(PlotBoth)
-
 
         # Load Data
         WLs = self.WLsSpectralMap
@@ -1661,26 +1677,25 @@ class MyWindow(QWidget):
         gs = figSM.add_gridspec(1, 1)
         figSM_ax1 = figSM.add_subplot(gs[0, 0])
 
-        ColorList = ['b','g','r','orange','c','m','y','k']
+        ColorList = ['b','g','r','orange','c','m','y','k','lime','darorange','firebrick','hotpink','deepskyblue','crimson','pink','indigo','teal','limegreen','mediumvioletred','blueviolet','darkgoldenrod','lavender','navajowhite','saddlebrown','palevioletred','dodgerblue','lightslategrey']
+        ColorListAlt = ['c','m','y','b','g','r','orange','k','lime','darorange','firebrick','hotpink','deepskyblue','crimson','pink','indigo','teal','limegreen','mediumvioletred','blueviolet','darkgoldenrod','lavender','navajowhite','saddlebrown','palevioletred','dodgerblue','lightslategrey']
 
         # Plotting and Axis Formatting fog1_ax1
         i = 0
         while i < NumberOfSamples:
                 if SavGol == True and PlotBoth == True:
-                    print("Both")
                     Label = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1]) + " SavGol" 
                     Label2 = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1])  
-                    Data = savgol_filter(self.OGData[SpotsStart[i][0]][SpotsStart[i][1]], SavGol_Area, SavGol_Polynom)
-                    Data2 = self.OGData[SpotsStart[i][0]][SpotsStart[i][1]]
+                    Data = savgol_filter(self.Transposed_originalSM_matrix[SpotsStart[i][1]][SpotsStart[i][0]], SavGol_Area, SavGol_Polynom)
+                    Data2 = self.Transposed_originalSM_matrix[SpotsStart[i][1]][SpotsStart[i][0]]
                     figSM_ax1.plot(WLs, Data2, label=Label2, color=ColorList[i], linestyle='dashed')
                 elif SavGol == True:
-                    print("SavGol")
                     Label = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1]) + " SavGol"
-                    Data = savgol_filter(self.OGData[SpotsStart[i][0]][SpotsStart[i][1]], SavGol_Area, SavGol_Polynom)
+                    Data = savgol_filter(self.Transposed_originalSM_matrix[SpotsStart[i][1]][SpotsStart[i][0]], SavGol_Area, SavGol_Polynom)
                 else:
-                    print("No SavGol")
                     Label = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1])  
-                    Data = self.OGData[SpotsStart[i][0]][SpotsStart[i][1]]
+                    #Data = self.originalSM_matrix[SpotsStart[i][0]][SpotsStart[i][1]]
+                    Data = self.Transposed_originalSM_matrix[SpotsStart[i][1]][SpotsStart[i][0]]
                 XMaxWL = WLs[np.argmax(Data, axis=0)]
                 XMax = max(Data)
                 figSM_ax1.plot(WLs, Data, label=Label, color=ColorList[i])
@@ -1784,13 +1799,11 @@ class MyWindow(QWidget):
              print("Click outside the axes or no data loaded.")
 
     def update_points_display3(self):
-        """Aktualisiert das Textfeld mit der Liste der geklickten Punkte."""
         # Formatieren der Punkte für eine schöne Ausgabe
         display_text = "\n".join([f"({x:.3f}, {y:.3f})" for x, y in self.clicked_points3])
         self.points_display3.setText(display_text)
 
     def clear_points3(self):
-        """Löscht die Liste der gespeicherten Punkte und aktualisiert die Anzeige."""
         self.clicked_points3 = []
         #print("Saved positions deleted.")
         self.update_points_display3() # Textfeld leeren
@@ -1811,14 +1824,12 @@ class MyWindow(QWidget):
 
 
     def update_points_display(self):
-        """Aktualisiert das Textfeld mit der Liste der geklickten Punkte."""
         # Formatieren der Punkte für eine schöne Ausgabe
         display_text = "\n".join([f"({x:.3f}, {y:.3f})" for x, y in self.clicked_points])
         self.points_display.setText(display_text)
 
 
     def clear_points(self):
-        """Löscht die Liste der gespeicherten Punkte und aktualisiert die Anzeige."""
         self.clicked_points = []
         #print("Saved positions deleted.")
         self.update_points_display() # Textfeld leeren
@@ -1908,32 +1919,8 @@ class MyWindow(QWidget):
         self.plot_button2.setStyleSheet("color: white; background-color: rgb(255,0,0); border-radius: 10px")
         self.plot_button2.setEnabled(False)
 
-        #print("Hier Plot einfügen!")
-        #print(self.clicked_points)
-        #print(self.clicked_points[0][0])
-        #print(self.clicked_points[0][1])
-        
-        #RangeInput = 4
-        #ODhigh = self.upper_spinbox2.value()
-        #ODlow = self.lower_spinbox2.value()
-        #Legend = self.colorbar_check2.isChecked()
-        #WLhigh = self.WL_spinbox_high.value()
-        #WLlow = self.WL_spinbox_low.value()
-        #RangeX = self.x_mittel_spinbox2.value()
-        #RangeY = self.y_mittel_spinbox2.value()
-        #if RangeX > RangeY:
-        #    RangeInput = RangeX
-        #else:
-        #    RangeInput = RangeY
         self.Spectra_from_Pixel(ordnerpfad_spectra,self.clicked_points)
         #self.Spectra_from_Pixel(ordnerpfad_spectra,self.clicked_points,RangeInput)
-
-        #print("ODhigh: " + str(ODhigh))
-        #print("ODlow: " + str(ODlow))
-        #print("Legend: " + str(Legend))
-        #print("WLhigh: " + str(WLhigh))
-        #print("WLlow: " + str(WLlow))
-        #print("RangeInput: " + str(RangeInput))
 
         #QMessageBox.information(self, "Ready", "Plots succesfully generated!")
         self.plot_button2.setEnabled(True)
@@ -2018,12 +2005,14 @@ class MyWindow(QWidget):
 
         #fig1.suptitle('WSe2 Flake on glass')
 
-        ColorList = ['b','g','r','orange','c','m','y','k']
+
+        ColorList = ['b','g','r','orange','c','m','y','k','lime','darorange','firebrick','hotpink','deepskyblue','crimson','pink','indigo','teal','limegreen','mediumvioletred','blueviolet','darkgoldenrod','lavender','navajowhite','saddlebrown','palevioletred','dodgerblue','lightslategrey']
+        ColorListAlt = ['c','m','y','b','g','r','orange','k','lime','darorange','firebrick','hotpink','deepskyblue','crimson','pink','indigo','teal','limegreen','mediumvioletred','blueviolet','darkgoldenrod','lavender','navajowhite','saddlebrown','palevioletred','dodgerblue','lightslategrey']
         # Plotting and Axis Formatting fog1_ax1
         i = 0
         while i < len(Samples):
+                #print(ColorList[i])
                 if SavGol == True and PlotBoth == True:
-                    print("Both")
                     Label = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1]) + " SavGol" 
                     Label2 = "Position " + str(SpotsStart[i][0]) + "X" + str(SpotsStart[i][1])  
                     Data = savgol_filter(Samples[i], SavGol_Area, SavGol_Polynom)
@@ -2046,8 +2035,8 @@ class MyWindow(QWidget):
                     while j < len(npamax[0]):
                         XMaxWL = WLs[npamax[0][j]]
                         XMax = Data[npamax[0][j]]
-                        print(XMaxWL)
-                        print(XMax)
+                        #print(XMaxWL)
+                        #print(XMax)
                         plt.axvline(x=XMaxWL, color=ColorList[i])
                         fig1_ax1.text(XMaxWL, XMax, str(XMaxWL)+" nm")
                         j += 1
@@ -2057,8 +2046,8 @@ class MyWindow(QWidget):
                     while j < len(npamin[0]):
                         XMinWL = WLs[npamin[0][j]]
                         XMin = Data[npamin[0][j]]
-                        print(XMinWL)
-                        print(XMin)
+                        #print(XMinWL)
+                        #print(XMin)
                         plt.axvline(x=XMinWL, color=ColorList[i])
                         fig1_ax1.text(XMinWL, XMin, str(XMinWL)+" nm")
                         j += 1
@@ -2104,13 +2093,7 @@ class MyWindow(QWidget):
         global InitMin
         global InitMax
         global Fixed3dInit
-
-        """
-        Zeigt den Plot im Hauptfenster an.
-
-        Args:
-          daten_array: Das 2D-Numpy-Array mit den Daten.
-        """
+        
         # Alten Plot entfernen, falls vorhanden
         if self.plot_layout1.count() > 0:
             item = self.plot_layout1.takeAt(1)
