@@ -31,7 +31,7 @@ The function converts multiple DAT-Files into one large Absorption Map. The file
 The function takes single Spectra from the previously created large Absorption Map. The User is able to select multiple Positions on the Map to create Spectra.
 
 **PL Spectral Mapping**  
-The function takes a series of Spectra from the Andor Solis to creat one large Spectral Map. The User is able to select multiple Positions on the Map to extract the single Spectra.<br><br>
+The function takes a series of Spectra from the Andor Solis Software to creat one large Spectral Map. The User is able to select multiple Positions on the Map to extract the single Spectra.<br><br>
 For further information, please refere to the Usermanual.
 
 
