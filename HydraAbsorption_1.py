@@ -11,7 +11,7 @@ print("Copyright: " + COPYRIGHT)
 CONTACT = "info@hydraspex.com"
 print("Contact: " + CONTACT)
 CITE = "Available soon!"
-print("If HydraAbsorption contributes to publisch a work please cite: " + CITE + "\n\n")
+print("If HydraAbsorption contributes to publish a work please cite: " + CITE + "\n\n")
 
 
 #Imports ---------------------------------------------------------------
